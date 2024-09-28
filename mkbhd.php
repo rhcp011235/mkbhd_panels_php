@@ -42,9 +42,15 @@ $wallpapers = $decoded_json->data;
 
 // Loop through each item and process
 foreach ($wallpapers as $key => $value) 
-{    
+{   
+
+	// only grab HD/4K 
     if ($value->dhd == "") continue;
-    $id = $key;
+    
+	// Value used to keep track if we downloaded or not
+	$id = $key;
+
+	// URL of the actual wallpaper we are getting
 	$wallpaper_URL = $value->dhd;
     
   
