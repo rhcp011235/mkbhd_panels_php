@@ -61,9 +61,12 @@ foreach ($wallpapers as $key => $value)
         }
 
         // Download the file
-        $file_name = basename($wallpaper_URL);
-        $file_path = $download_dir . $file_name;
-        file_put_contents($file_path, file_get_contents($wallpaper_URL));
+     	$filename = basename(parse_url($wallpaper_URL, PHP_URL_PATH));
+		$fileParts = pathinfo($filename);
+		$firstPart = strtok($fileParts['filename'], '.');
+		$extension = $fileParts['extension'];
+		$file_path = $download_dir . $firstPart . "." . $extension;
+		file_put_contents($file_path, file_get_contents($wallpaper_URL));
 
         // Insert the item into the SQLite database
         $stmt = $db->prepare("
