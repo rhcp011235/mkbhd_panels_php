@@ -4,7 +4,6 @@
 // @john011235
 
 error_reporting(E_ERROR | E_PARSE);
-$VERBOSE = 1;
 
 // Set up SQLite database connection
 $db = new PDO('sqlite:panels.db');
