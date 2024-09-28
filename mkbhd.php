@@ -6,8 +6,12 @@
 error_reporting(E_ERROR | E_PARSE);
 
 // Set up SQLite database connection
-$db = new PDO('sqlite:panels.db');
-$db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+try {
+    $db = new PDO('sqlite:panels.db');
+    $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+} catch (PDOException $e) {
+    die("Database connection failed: " . $e->getMessage());
+}
 
 // Create table if it doesn't exist
 $db->exec("
@@ -21,7 +25,7 @@ $db->exec("
 $json_url = 'https://storage.googleapis.com/panels-api/data/20240916/media-1a-i-p~s';
 $walls = file_get_contents($json_url);
 
-if ($json_data === false) {
+if ($walls === false) {
     die("Failed to fetch data from the URL.");
 }
 
@@ -30,7 +34,6 @@ $decoded_json = json_decode($walls, false);
 if (json_last_error() !== JSON_ERROR_NONE) {
     die("Failed to decode JSON: " . json_last_error_msg());
 }
-
 
 // Directory to save downloaded items
 $download_dir = 'mkbhd_walls/';
@@ -41,23 +44,17 @@ if (!is_dir($download_dir)) {
 $wallpapers = $decoded_json->data;
 
 // Loop through each item and process
-foreach ($wallpapers as $key => $value) 
-{   
-
-	// only grab HD/4K 
-    if ($value->dhd == "") continue;
+foreach ($wallpapers as $key => $value) {   
+    // Only grab HD/4K 
+    if (empty($value->dhd)) continue;
     
-	// Value used to keep track if we downloaded or not
-	$id = $key;
-
-	// URL of the actual wallpaper we are getting
-	$wallpaper_URL = $value->dhd;
+    // URL of the actual wallpaper we are getting
+    $wallpaper_URL = $value->dhd;
     
-  
     if ($wallpaper_URL) {
-        //Check if the item has already been downloaded
+        // Check if the item has already been downloaded
         $stmt = $db->prepare("SELECT COUNT(*) FROM MKBHD_PANELS WHERE ID = :id");
-        $stmt->execute([':id' => $id]);
+        $stmt->execute([':id' => $key]);
         $exists = $stmt->fetchColumn();
 
         if ($exists) {
@@ -66,12 +63,12 @@ foreach ($wallpapers as $key => $value)
         }
 
         // Download the file
-     	$filename = basename(parse_url($wallpaper_URL, PHP_URL_PATH));
-		$fileParts = pathinfo($filename);
-		$firstPart = strtok($fileParts['filename'], '.');
-		$extension = $fileParts['extension'];
-		$file_path = $download_dir . $firstPart . "." . $extension;
-		file_put_contents($file_path, file_get_contents($wallpaper_URL));
+        $filename = basename(parse_url($wallpaper_URL, PHP_URL_PATH));
+        $file_path = $download_dir . $filename;
+        if (file_put_contents($file_path, file_get_contents($wallpaper_URL)) === false) {
+            echo "Failed to download: $wallpaper_URL\n";
+            continue;
+        }
 
         // Insert the item into the SQLite database
         $stmt = $db->prepare("
@@ -79,8 +76,8 @@ foreach ($wallpapers as $key => $value)
             VALUES (:id, :url)
         ");
         $stmt->execute([
-            ':id' => $id,
-             ':url' => $wallpaper_URL
+            ':id' => $key,
+            ':url' => $wallpaper_URL
         ]);
 
         echo "Downloaded and processed: $wallpaper_URL\n";
