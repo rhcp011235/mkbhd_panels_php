@@ -9,7 +9,7 @@ error_reporting(E_ERROR | E_PARSE);
 define('DB_PATH', 'sqlite:panels.db');
 define('JSON_URL', 'https://storage.googleapis.com/panels-api/data/20240916/media-1a-i-p~s');
 define('DOWNLOAD_DIR', 'mkbhd_walls/');
-define('MAX_CONCURRENT_DOWNLOADS', 5);
+define('MAX_CONCURRENT_DOWNLOADS', 12);
 
 // Set up SQLite database connection
 function getDatabaseConnection() {
@@ -96,6 +96,7 @@ function downloadFilesConcurrently($urls) {
 }
 
 // Main script
+$startTime = microtime(true);
 $db = getDatabaseConnection();
 createTable($db);
 
@@ -156,6 +157,7 @@ foreach ($chunks as $chunk) {
     }
 }
 
-echo "All items processed.\n";
+$endTime = microtime(true);
+$duration = $endTime - $startTime;
+echo "All items processed in " . round($duration, 2) . " seconds.\n";
 ?>
-
